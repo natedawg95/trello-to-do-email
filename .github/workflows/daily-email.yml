@@ -1,0 +1,26 @@
+name: Trello Daily Summary
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  send-summary:
+    runs-on: ubuntu-latest
+    env:
+      TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+      TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+      TRELLO_BOARD_ID: ${{ secrets.TRELLO_BOARD_ID }}
+      TRELLO_MEMBER_ID: ${{ secrets.TRELLO_MEMBER_ID }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      USER_EMAIL: ${{ secrets.USER_EMAIL }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm install node-fetch@2 nodemailer
+      - run: node send-summary.js
