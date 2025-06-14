@@ -1,0 +1,21 @@
+{
+    "name": "My Power-Up",
+    "description": "A simple Trello Power-Up example.",
+    "author": "Your Name",
+    "capabilities": {
+      "board-buttons": [{
+        "text": "Click Me!",
+        "callback": "showButtonPopup"
+      }]
+    },
+    "connectors": {},
+    "icon": {
+      "url": "https://yourdomain.com/icon.png"
+    },
+    "url": "https://yourdomain.com",
+    "permissions": {
+      "api": "read",
+      "board": "read"
+    }
+  }
+  
