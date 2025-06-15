@@ -25,12 +25,20 @@ async function getCardsWithDueDates() {
     // Fetch checklists on the card
     const checklistsRes = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
     const checklists = await checklistsRes.json();
+    console.log(`📝 Found ${checklists.length} checklists on "${card.name}"`);
+
 
     // Fetch checklist assignment states
     const statesRes = await fetch(`https://api.trello.com/1/cards/${card.id}/checkItemStates?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
     const checkItemStates = await statesRes.json();
 
+    console.log(`🔄 checkItemStates on "${card.name}":`, checkItemStates);
+
+
     for (const checklist of checklists) {
+      console.log(`📋 Checklist: ${checklist.name} with ${checklist.checkItems.length} items`);
+      
+
       for (const item of checklist.checkItems) {
         // Find matching state for this checklist item
         console.log(`🔍 Checking checklist item "${item.name}"`);
