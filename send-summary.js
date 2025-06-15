@@ -110,22 +110,22 @@ function formatSummary(userItemsWithDates) {
   let summary = [];
 
   if (categorized.overdue.length) {
-    summary.push(`⚠️ **Overdue**`, ...indentList(categorized.overdue));
+    summary.push(`⚠️**Overdue**`, ...indentList(categorized.overdue));
   }
 
   if (categorized.today.length) {
-    summary.push(`📅 **Today (${formatMonthDay(now)})**`, ...indentList(categorized.today));
+    summary.push(`**Today (${formatMonthDay(now)})**`, ...indentList(categorized.today));
   }
 
   if (Object.keys(categorized.thisWeek).length) {
-    summary.push(`🗓 **This Week**`);
+    summary.push(`**This Week**`);
     for (const key of Object.keys(categorized.thisWeek)) {
       summary.push(`    ${categorized.thisWeek[key].label}`, ...indentList(categorized.thisWeek[key].items, 2));
     }
   }
 
   if (categorized.future.length) {
-    summary.push(`📆 **Future**`, ...indentList(categorized.future));
+    summary.push(`**Future**`, ...indentList(categorized.future));
   }
 
   return summary.join("\n");
@@ -147,6 +147,10 @@ function indentList(list, indentLevel = 1) {
   return list.map((item) => `${indent}${item}`);
 }
 
+function bodyToHTML(textBody) {
+  return `<pre style="font-family: monospace; font-size: 14px;">${textBody
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</pre>`;
+}
 
 async function sendEmail(body) {
   console.log("Preparing to send email to", USER_EMAIL);
@@ -162,8 +166,9 @@ async function sendEmail(body) {
     from: `"Trello Bot" <${process.env.EMAIL_FROM}>`,
     to: USER_EMAIL,
     subject: "📝 Your Trello Tasks for Today",
-    text: body,
-  });
+    text: body,         // Fallback for clients that can't render HTML
+    html: bodyToHTML(body),  // Real formatting
+  });  
 }
 
 (async () => {
