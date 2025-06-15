@@ -19,9 +19,10 @@ async function getCardsWithDueDates() {
     // Top-level card due date
     if (card.due && card.idMembers.includes(TRELLO_MEMBER_ID)) {
       userItemsWithDates.push({
-        itemText: `📌 ${card.name}`,
-        due: card.due
-      });
+        itemText: card.name,
+        due: card.due,
+        isCard: true
+      });      
     }
 
     // Fetch checklists on the card
@@ -39,9 +40,10 @@ async function getCardsWithDueDates() {
 
         if (item.due && assigned) {
           userItemsWithDates.push({
-            itemText: `☑️ ${item.name} (from "${card.name}")`,
-            due: item.due
-          });
+            itemText: `${item.name} (from "${card.name}")`,
+            due: item.due,
+            isCard: false
+          });          
         } else {
           console.log(`⛔️ SKIPPED: ${item.name} – Reason: ${!assigned ? 'Not assigned to user' : 'No due date'}`);
         }
@@ -56,8 +58,8 @@ function formatSummary(userItemsWithDates) {
   const categorized = {
     overdue: [],
     today: [],
-    thisWeek: [],
-    later: [],
+    thisWeek: {},
+    future: [],
   };
 
   const now = new Date();
@@ -65,42 +67,86 @@ function formatSummary(userItemsWithDates) {
   const endOfWeek = new Date();
   endOfWeek.setDate(now.getDate() + (7 - now.getDay())); // Sunday
 
+  const pad = (n) => n.toString().padStart(2, "0");
+
+  const formatDay = (d) =>
+    d.toLocaleDateString(undefined, { weekday: 'short' });
+
   const formatDate = (d) =>
-    d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    `${formatDay(d)} ${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+
+  const formatMonthDay = (d) =>
+    `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+
+  const groupKey = (d) => {
+    const keyDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return keyDate.toISOString().split("T")[0];
+  };
 
   userItemsWithDates
     .sort((a, b) => new Date(a.due) - new Date(b.due))
-    .forEach(({ itemText, due }) => {
+    .forEach(({ itemText, due, isCard }) => {
       const dueDate = new Date(due);
       const dueStr = dueDate.toDateString();
+      const dueKey = groupKey(dueDate);
 
       if (dueDate < now && dueStr !== todayStr) {
-        categorized.overdue.push(itemText);
+        categorized.overdue.push(formatItem(itemText, isCard));
       } else if (dueStr === todayStr) {
-        categorized.today.push(itemText);
+        categorized.today.push(formatItem(itemText, isCard));
       } else if (dueDate <= endOfWeek) {
-        categorized.thisWeek.push(`${dueDate.toLocaleDateString(undefined, { weekday: 'short' })} – ${itemText}`);
+        if (!categorized.thisWeek[dueKey]) {
+          categorized.thisWeek[dueKey] = {
+            label: `${formatDay(dueDate)} (${formatMonthDay(dueDate)})`,
+            items: [],
+          };
+        }
+        categorized.thisWeek[dueKey].items.push(formatItem(itemText, isCard));
       } else {
-        categorized.later.push(`${formatDate(dueDate)} – ${itemText}`);
+        categorized.future.push(`${formatItem(itemText, isCard)} (${formatDay(dueDate)} ${formatMonthDay(dueDate)})`);
       }
     });
 
   let summary = [];
 
-  if (categorized.overdue.length)
-    summary.push("🚨 Overdue!!", ...categorized.overdue);
+  if (categorized.overdue.length) {
+    summary.push(`⚠️ **Overdue**`, ...indentList(categorized.overdue));
+  }
 
-  if (categorized.today.length)
-    summary.push("📅 Today:", ...categorized.today);
+  if (categorized.today.length) {
+    summary.push(`📅 **Today (${formatMonthDay(now)})**`, ...indentList(categorized.today));
+  }
 
-  if (categorized.thisWeek.length)
-    summary.push("🗓 This Week:", ...categorized.thisWeek);
+  if (Object.keys(categorized.thisWeek).length) {
+    summary.push(`🗓 **This Week**`);
+    for (const key of Object.keys(categorized.thisWeek)) {
+      summary.push(`    ${categorized.thisWeek[key].label}`, ...indentList(categorized.thisWeek[key].items, 2));
+    }
+  }
 
-  if (categorized.later.length)
-    summary.push("📆 Later:", ...categorized.later);
+  if (categorized.future.length) {
+    summary.push(`📆 **Future**`, ...indentList(categorized.future));
+  }
 
   return summary.join("\n");
 }
+
+function formatItem(text, isCard) {
+  if (isCard) {
+    return `🃏 ${text}`;
+  } else {
+    const match = text.match(/\(from "(.*?)"\)/);
+    const cardName = match ? match[1] : "Unknown";
+    const task = text.replace(/\s*\(from.*?\)$/, "").trim();
+    return `✔ ${task} (🃏 ${cardName})`;
+  }
+}
+
+function indentList(list, indentLevel = 1) {
+  const indent = "    ".repeat(indentLevel);
+  return list.map((item) => `${indent}${item}`);
+}
+
 
 async function sendEmail(body) {
   console.log("Preparing to send email to", USER_EMAIL);
