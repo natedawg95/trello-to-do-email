@@ -11,6 +11,11 @@ async function getCardsWithDueDates() {
   const res = await fetch(`https://api.trello.com/1/boards/${BOARD_ID}/cards?fields=name,due,idMembers&checklists=all&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
   const cards = await res.json();
 
+  console.log("Fetched cards:");
+  cards.forEach(card => {
+    console.log(`📎 ${card.name} – Members: ${card.idMembers.join(", ")} – Due: ${card.due}`);
+  });
+
   const now = new Date();
   const upcoming = [];
 
