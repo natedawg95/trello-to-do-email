@@ -18,7 +18,7 @@ async function getCardsWithDueDates() {
 
     // Top-level card due date
     if (card.due) {
-      upcoming.push(`📌 ${card.name} – Due: ${new Date(card.due).toLocaleDateString()}`);
+      userItems.push(`📌 ${card.name} – Due: ${new Date(card.due).toLocaleDateString()}`);
     }
     
 
