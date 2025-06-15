@@ -37,7 +37,9 @@ async function getCardsWithDueDates() {
 
 async function sendEmail(body) {
   let transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.office365.com',
+    port: 587,
+    secure: false, // STARTTLS
     auth: {
       user: process.env.EMAIL_FROM,
       pass: process.env.EMAIL_PASS,
@@ -45,7 +47,7 @@ async function sendEmail(body) {
   });
 
   await transporter.sendMail({
-    from: \`"Trello Bot" <\${process.env.EMAIL_FROM}>\`,
+    from: `"Trello Bot" <${process.env.EMAIL_FROM}>`,
     to: USER_EMAIL,
     subject: "📝 Your Trello Tasks for Today",
     text: body.join("\n"),
