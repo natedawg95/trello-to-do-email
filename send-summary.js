@@ -45,12 +45,14 @@ async function getCardsWithDueDates() {
         console.log(`➡️ Checklist item raw:`, item);
         console.log(`➡️ Available checkItemStates:`, checkItemStates);
 
-        if (item.due && item.idMember === TRELLO_MEMBER_ID) {
-          console.log(`✅ MATCHED: ${item.name}`);
+        const assigned = item.idMember === TRELLO_MEMBER_ID;
+
+        if (item.due && assigned) {
           userItems.push(`☑️ ${item.name} (from "${card.name}") – Due: ${new Date(item.due).toLocaleDateString()}`);
         } else {
-          console.log(`⛔️ SKIPPED: ${item.name} – Reason: ${!state ? 'Not assigned to user' : 'No due date'}`);
+          console.log(`⛔️ SKIPPED: ${item.name} – Reason: ${!assigned ? 'Not assigned to user' : 'No due date'}`);
         }
+
       }
     }
   }
