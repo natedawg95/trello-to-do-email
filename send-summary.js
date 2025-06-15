@@ -3,20 +3,26 @@ const nodemailer = require('nodemailer');
 
 const TRELLO_KEY = process.env.TRELLO_KEY;
 const TRELLO_TOKEN = process.env.TRELLO_TOKEN;
-const BOARD_ID = process.env.TRELLO_BOARD_ID;
 const USER_EMAIL = process.env.USER_EMAIL;
 const TRELLO_MEMBER_ID = process.env.TRELLO_MEMBER_ID;
 
-async function getCardsWithDueDates() {
-  const res = await fetch(`https://api.trello.com/1/boards/${BOARD_ID}/cards?fields=name,due,idMembers&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
+const BOARD_IDS = ['JbK4j4yW', 'MAfPC0Xi', 'aUMYzTFu'];
+
+async function getAllCardsWithDueDates() {
+  const allItems = [];
+  for (const boardId of BOARD_IDS) {
+    const items = await getCardsWithDueDates(boardId);
+    allItems.push(...items);
+  }
+  return allItems;
+}
+
+async function getCardsWithDueDates(boardId) {
+  const res = await fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,due,idMembers&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
   const cards = await res.json();
-  console.log("Fetched cards:");
   const userItemsWithDates = [];
 
   for (const card of cards) {
-    console.log(`📎 ${card.name} – Members: ${card.idMembers?.join(", ")} – Due: ${card.due}`);
-
-    // Top-level card due date
     if (card.due && card.idMembers.includes(TRELLO_MEMBER_ID)) {
       userItemsWithDates.push({
         itemText: card.name,
@@ -25,17 +31,11 @@ async function getCardsWithDueDates() {
       });      
     }
 
-    // Fetch checklists on the card
     const checklistsRes = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
     const checklists = await checklistsRes.json();
-    console.log(`📝 Found ${checklists.length} checklists on "${card.name}"`);
 
     for (const checklist of checklists) {
-      console.log(`📋 Checklist: ${checklist.name} with ${checklist.checkItems.length} items`);
       for (const item of checklist.checkItems) {
-        console.log(`🔍 Checking checklist item "${item.name}"`);
-        console.log(`➡️ Checklist item raw:`, item);
-
         const assigned = item.idMember === TRELLO_MEMBER_ID;
 
         if (item.due && assigned) {
@@ -44,8 +44,6 @@ async function getCardsWithDueDates() {
             due: item.due,
             isCard: false
           });          
-        } else {
-          console.log(`⛔️ SKIPPED: ${item.name} – Reason: ${!assigned ? 'Not assigned to user' : 'No due date'}`);
         }
       }
     }
@@ -114,18 +112,18 @@ function formatSummary(userItemsWithDates) {
   }
 
   if (categorized.today.length) {
-    summary.push(`**Today (${formatMonthDay(now)})**`, ...indentList(categorized.today));
+    summary.push(`\n**Today (${formatMonthDay(now)})**`, ...indentList(categorized.today));
   }
 
   if (Object.keys(categorized.thisWeek).length) {
-    summary.push(`**This Week**`);
+    summary.push(`\n**This Week**`);
     for (const key of Object.keys(categorized.thisWeek)) {
       summary.push(`    ${categorized.thisWeek[key].label}`, ...indentList(categorized.thisWeek[key].items, 2));
     }
   }
 
   if (categorized.future.length) {
-    summary.push(`**Future**`, ...indentList(categorized.future));
+    summary.push(`\n**Future**`, ...indentList(categorized.future));
   }
 
   return summary.join("\n");
@@ -161,8 +159,6 @@ function bodyToHTML(textBody) {
   `;
 }
 
-
-
 async function sendEmail(body) {
   console.log("Preparing to send email to", USER_EMAIL);
   let transporter = nodemailer.createTransport({
@@ -177,13 +173,13 @@ async function sendEmail(body) {
     from: `"Trello Bot" <${process.env.EMAIL_FROM}>`,
     to: USER_EMAIL,
     subject: "📝 Your Trello Tasks for Today",
-    text: body,         // Fallback for clients that can't render HTML
-    html: bodyToHTML(body),  // Real formatting
+    text: body,
+    html: bodyToHTML(body),
   });  
 }
 
 (async () => {
-  const items = await getCardsWithDueDates();
+  const items = await getAllCardsWithDueDates();
   console.log("Summary items:", items);
   if (items.length) {
     const formatted = formatSummary(items);
