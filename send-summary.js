@@ -36,15 +36,15 @@ async function getCardsWithDueDates() {
 }
 
 async function sendEmail(body) {
+  console.log("Preparing to send email to", USER_EMAIL);
   let transporter = nodemailer.createTransport({
-    host: 'smtp.office365.com',
-    port: 587,
-    secure: false, // STARTTLS
+    service: 'gmail',
     auth: {
       user: process.env.EMAIL_FROM,
       pass: process.env.EMAIL_PASS,
     },
   });
+  
 
   await transporter.sendMail({
     from: `"Trello Bot" <${process.env.EMAIL_FROM}>`,
@@ -56,7 +56,12 @@ async function sendEmail(body) {
 
 (async () => {
   const summary = await getCardsWithDueDates();
+  console.log("Summary output:");
+  console.log(summary);
   if (summary.length) {
+    console.log("Sending email...");
     await sendEmail(summary);
+  } else {
+    console.log("No items found for user; skipping email.");
   }
 })();
