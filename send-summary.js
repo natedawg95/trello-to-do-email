@@ -10,52 +10,39 @@ const TRELLO_MEMBER_ID = process.env.TRELLO_MEMBER_ID;
 async function getCardsWithDueDates() {
   const res = await fetch(`https://api.trello.com/1/boards/${BOARD_ID}/cards?fields=name,due,idMembers&checklists=all&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
   const cards = await res.json();
-
   console.log("Fetched cards:");
-  cards.forEach(card => {
-    console.log(`📎 ${card.name} – Members: ${card.idMembers.join(", ")} – Due: ${card.due}`);
-  });
-
-  console.log("🔍 Checking cards for checklists...");
-  cards.forEach(card => {
-    console.log(`📋 ${card.name} – Checklists: ${card.idChecklists?.length || 0}`);
-  });
-
-  const now = new Date();
-  const upcoming = [];
+  const userItems = [];
 
   for (const card of cards) {
+    console.log(`📎 ${card.name} – Members: ${card.idMembers?.join(", ")} – Due: ${card.due}`);
+
+    // Top-level card due date
     if (card.due) {
       upcoming.push(`📌 ${card.name} – Due: ${new Date(card.due).toLocaleDateString()}`);
     }
     
 
-    // Now get checklists
-    for (const checklistId of card.idChecklists || []) {
-      const checklistResp = await fetch(`https://api.trello.com/1/checklists/${checklistId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
-      const checklist = await checklistResp.json();
+    // Fetch checklists on the card
+    const checklistsRes = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
+    const checklists = await checklistsRes.json();
 
-      console.log(`📝 Fetching checklist ${checklist.name}...`);
+    // Fetch checklist assignment states
+    const statesRes = await fetch(`https://api.trello.com/1/cards/${card.id}/checkItemStates?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
+    const checkItemStates = await statesRes.json();
 
-      for (const item of checklist.checkItems || []) {
-        console.log(`🔸 Item: ${item.name} – ID: ${item.id}`);
-        // We need to get the full check item to access member/due info
-        const checkItemDetailsResp = await fetch(`https://api.trello.com/1/cards/${card.id}/checkItem/${item.id}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
-        const checkItemDetails = await checkItemDetailsResp.json();
+    for (const checklist of checklists) {
+      for (const item of checklist.checkItems) {
+        // Find matching state for this checklist item
+        const state = checkItemStates.find(s => s.idCheckItem === item.id && s.idMember === TRELLO_MEMBER_ID);
 
-        console.log(`   ↪ Details: Member=${checkItemDetails.idMember}, Due=${checkItemDetails.due}`);
-
-        const assignedToMe = checkItemDetails.idMember && checkItemDetails.idMember === TRELLO_MEMBER_ID;
-        const hasDue = checkItemDetails.due;
-
-        if (assignedToMe && hasDue) {
-          upcoming.push(`✅ ${card.name} › ${item.name} – Due: ${new Date(checkItemDetails.due).toLocaleDateString()}`);
+        if (state && item.due) {
+          userItems.push(`☑️ ${item.name} (from "${card.name}") – Due: ${new Date(item.due).toLocaleDateString()}`);
         }
       }
     }
   }
 
-  return upcoming;
+  return userItems;
 }
 
 async function sendEmail(body) {
