@@ -148,13 +148,19 @@ function indentList(list, indentLevel = 1) {
 }
 
 function bodyToHTML(textBody) {
-  // Insert newline before bold headings (not the first one)
   const withNewlines = textBody
-    .replace(/\n(?=\*\*)/g, '\n\n')  // Add a blank line before headings
-    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');  // Convert markdown bold to HTML
+    .replace(/\n(?=\*\*)/g, '\n\n')            // Add newline before headings (except first)
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');   // Convert markdown bold to HTML
 
-  return `<pre style="font-family: monospace; font-size: 14px;">${withNewlines}</pre>`;
+  return `
+    <pre style="
+      font-family: Aptos, Calibri, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    ">${withNewlines}</pre>
+  `;
 }
+
 
 
 async function sendEmail(body) {
