@@ -45,9 +45,7 @@ async function getCardsWithDueDates() {
         console.log(`➡️ Checklist item raw:`, item);
         console.log(`➡️ Available checkItemStates:`, checkItemStates);
 
-        const state = checkItemStates.find(s => s.idCheckItem === item.id && s.idMember === TRELLO_MEMBER_ID);
-
-        if (state && item.due) {
+        if (item.due && item.idMember === TRELLO_MEMBER_ID) {
           console.log(`✅ MATCHED: ${item.name}`);
           userItems.push(`☑️ ${item.name} (from "${card.name}") – Due: ${new Date(item.due).toLocaleDateString()}`);
         } else {
