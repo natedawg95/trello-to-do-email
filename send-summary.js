@@ -25,12 +25,21 @@ async function getCardsWithDueDates() {
     }
     
 
-    if (card.checklists) {
-      for (const list of card.checklists) {
-        for (const item of list.checkItems) {
-          if (item.name.includes(`@${TRELLO_MEMBER_ID}`)) {
-            upcoming.push(`☑️ ${item.name} in ${card.name}`);
-          }
+    // Now get checklists
+    for (const checklistId of card.idChecklists || []) {
+      const checklistResp = await fetch(`https://api.trello.com/1/checklists/${checklistId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
+      const checklist = await checklistResp.json();
+
+      for (const item of checklist.checkItems || []) {
+        // We need to get the full check item to access member/due info
+        const checkItemDetailsResp = await fetch(`https://api.trello.com/1/cards/${card.id}/checkItem/${item.id}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN}`);
+        const checkItemDetails = await checkItemDetailsResp.json();
+
+        const assignedToMe = checkItemDetails.idMember && checkItemDetails.idMember === TRELLO_MEMBER_ID;
+        const hasDue = checkItemDetails.due;
+
+        if (assignedToMe && hasDue) {
+          upcoming.push(`✅ ${card.name} › ${item.name} – Due: ${new Date(checkItemDetails.due).toLocaleDateString()}`);
         }
       }
     }
