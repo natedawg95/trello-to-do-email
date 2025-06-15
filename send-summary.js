@@ -33,10 +33,17 @@ async function getCardsWithDueDates() {
     for (const checklist of checklists) {
       for (const item of checklist.checkItems) {
         // Find matching state for this checklist item
+        console.log(`🔍 Checking checklist item "${item.name}"`);
+        console.log(`➡️ Checklist item raw:`, item);
+        console.log(`➡️ Available checkItemStates:`, checkItemStates);
+
         const state = checkItemStates.find(s => s.idCheckItem === item.id && s.idMember === TRELLO_MEMBER_ID);
 
         if (state && item.due) {
+          console.log(`✅ MATCHED: ${item.name}`);
           userItems.push(`☑️ ${item.name} (from "${card.name}") – Due: ${new Date(item.due).toLocaleDateString()}`);
+        } else {
+          console.log(`⛔️ SKIPPED: ${item.name} – Reason: ${!state ? 'Not assigned to user' : 'No due date'}`);
         }
       }
     }
