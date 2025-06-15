@@ -20,11 +20,10 @@ async function getCardsWithDueDates() {
   const upcoming = [];
 
   for (const card of cards) {
-    if (card.idMembers.includes(TRELLO_MEMBER_ID)) {
-      if (card.due) {
-        upcoming.push(`📌 ${card.name} – Due: ${new Date(card.due).toLocaleDateString()}`);
-      }
+    if (card.due) {
+      upcoming.push(`📌 ${card.name} – Due: ${new Date(card.due).toLocaleDateString()}`);
     }
+    
 
     if (card.checklists) {
       for (const list of card.checklists) {
